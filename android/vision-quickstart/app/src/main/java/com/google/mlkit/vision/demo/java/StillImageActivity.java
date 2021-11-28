@@ -16,6 +16,7 @@
 
 package com.google.mlkit.vision.demo.java;
 
+import static java.lang.Math.E;
 import static java.lang.Math.max;
 
 import android.content.ContentValues;
@@ -26,6 +27,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.exifinterface.media.ExifInterface;
+
 import android.util.Log;
 import android.util.Pair;
 import android.view.MenuInflater;
@@ -63,6 +66,8 @@ import com.google.mlkit.vision.text.devanagari.DevanagariTextRecognizerOptions;
 import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions;
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.theartofdev.edmodo.cropper.CropImage;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,6 +117,7 @@ public final class StillImageActivity extends AppCompatActivity {
   private int imageMaxWidth;
   private int imageMaxHeight;
   private VisionImageProcessor imageProcessor;
+  private int requestedRotation = ExifInterface.ORIENTATION_NORMAL;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -142,6 +148,45 @@ public final class StillImageActivity extends AppCompatActivity {
             });
     preview = findViewById(R.id.preview);
     graphicOverlay = findViewById(R.id.graphic_overlay);
+
+    findViewById(R.id.rotate_image_button)
+            .setOnClickListener(
+                view -> {
+                  switch (requestedRotation){
+                    case ExifInterface.ORIENTATION_UNDEFINED:
+                    case ExifInterface.ORIENTATION_NORMAL:
+                      requestedRotation = ExifInterface.ORIENTATION_ROTATE_90;
+                      break;
+                    case ExifInterface.ORIENTATION_ROTATE_90:
+                      requestedRotation = ExifInterface.ORIENTATION_ROTATE_180;
+                      break;
+                    case ExifInterface.ORIENTATION_ROTATE_180:
+                      requestedRotation = ExifInterface.ORIENTATION_ROTATE_270;
+                      break;
+                    case ExifInterface.ORIENTATION_ROTATE_270:
+                      requestedRotation = ExifInterface.ORIENTATION_NORMAL;
+                      break;
+                    default:
+                      Log.e(TAG, "Unknown rotation request");
+                      break;
+                  }
+
+
+
+                  tryReloadAndDetectInImage();
+                });
+
+    findViewById(R.id.crop_image_button)
+            .setOnClickListener(
+                    view -> {
+                      if(imageUri !=null) {
+                        CropImage.activity(imageUri).start(this);
+                      }else{
+                        Log.d(TAG,"No image selected");
+                      }
+                    });
+
+
 
     populateFeatureSelector();
     populateSizeSelector();
@@ -311,7 +356,17 @@ public final class StillImageActivity extends AppCompatActivity {
     } else if (requestCode == REQUEST_CHOOSE_IMAGE && resultCode == RESULT_OK) {
       // In this case, imageUri is returned by the chooser, save it.
       imageUri = data.getData();
+      requestedRotation = 0;
       tryReloadAndDetectInImage();
+    } else if (requestCode == CropImage.CROP_IMAGE_ACTIVITY_REQUEST_CODE) {
+      CropImage.ActivityResult result = CropImage.getActivityResult(data);
+      if (resultCode == RESULT_OK) {
+        imageUri = result.getUri();
+        requestedRotation = 0;
+        tryReloadAndDetectInImage();
+      } else if (resultCode == CropImage.CROP_IMAGE_ACTIVITY_RESULT_ERROR_CODE) {
+        Exception error = result.getError();
+      }
     } else {
       super.onActivityResult(requestCode, resultCode, data);
     }
@@ -329,7 +384,7 @@ public final class StillImageActivity extends AppCompatActivity {
         return;
       }
 
-      Bitmap imageBitmap = BitmapUtils.getBitmapFromContentUri(getContentResolver(), imageUri);
+      Bitmap imageBitmap = BitmapUtils.getBitmapFromContentUri(getContentResolver(), imageUri, requestedRotation);
       if (imageBitmap == null) {
         return;
       }

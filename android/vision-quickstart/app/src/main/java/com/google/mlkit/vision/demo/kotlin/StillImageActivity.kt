@@ -325,7 +325,7 @@ class StillImageActivity : AppCompatActivity() {
         return
       }
 
-      val imageBitmap = BitmapUtils.getBitmapFromContentUri(contentResolver, imageUri)
+      val imageBitmap = BitmapUtils.getBitmapFromContentUri(contentResolver, imageUri,0)
         ?: return
       // Clear the overlay first
       graphicOverlay!!.clear()

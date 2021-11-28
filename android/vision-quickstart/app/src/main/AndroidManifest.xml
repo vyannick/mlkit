@@ -109,6 +109,9 @@
             android:name=".preference.SettingsActivity"
             android:exported="false"/>
 
+        <activity android:name="com.theartofdev.edmodo.cropper.CropImageActivity"
+            android:theme="@style/Base.Theme.AppCompat"/>
+
     </application>
     <queries>
         <intent>
